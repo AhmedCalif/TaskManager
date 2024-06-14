@@ -60,12 +60,13 @@ export const taskLabels = mysqlTable('task_labels', {
 
 export async function createDatabase() {
     const connection = await mysql.createConnection({
-        host: process.env.HOST,
-        user: process.env.USER,
-        database: process.env.DATABASE,
-        port: 3306,
-        password: process.env.PASSWORD 
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME,
+        port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306,
+        password: process.env.DB_PASSWORD
     });
 
     return drizzle(connection);
 }
+

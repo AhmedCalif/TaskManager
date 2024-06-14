@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { users } from '../db/schema';
+import {eq} from 'drizzle-orm'
+
 
 const router = Router();
 
@@ -8,6 +10,7 @@ interface UserRequestBody {
     username: string;
     email: string;
     password: string;
+    confirm_password: string;
 }
 
 interface User {
@@ -21,48 +24,53 @@ router.get('/login', (req: Request, res: Response) => {
     res.render('login');
 });
 
-router.post('/login', async (req: Request<{}, {}, UserRequestBody>, res: Response) => {
-    const { email, password } = req.body;
+router.post('/login', async (req, res) => {
+    const { username, password } = req.body;
 
     try {
-        const user: User | undefined = await (req as any).db
-            .select()
-            .from(users)
-            .where({ email })
-            .first();
+        const db = (req as any).db;
+
+        const userResult = await db.select().from(users).where(eq(users.username, username));
+        const user = userResult[0]; 
 
         if (user && await bcrypt.compare(password, user.password)) {
-            (req.session as any).userId = user.id;
             res.redirect('/dashboard');
         } else {
-            res.render('login', { error: 'Invalid email or password' });
+            res.status(401).send('Invalid username or password');
         }
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).send('Internal server error');
+        res.status(500).send('An error occurred during login');
     }
 });
-
 router.get('/register', (req: Request, res: Response) => {
     res.render('register');
 });
 
-router.post('/register', async (req: Request<{}, {}, UserRequestBody>, res: Response) => {
+
+
+router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const [id] = await (req as any)
-            .insert({ username, email, password: hashedPassword })
-            .into(users);
+        const db = (req as any).db;
 
-        (req.session as any).userId = id;
-        res.redirect('/dashboard');
+        await db.insert(users).values({
+            username,
+            email,
+            password: hashedPassword
+        });
+
+        res.redirect('/auth/login');
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).send('Internal server error');
+        res.status(500).send('An error occurred during registration');
     }
 });
 
 export default router;
+
+
+

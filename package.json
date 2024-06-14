@@ -21,7 +21,7 @@
   },
   "scripts": {
     "start": "nodemon server.ts",
-    "dev": " nodemon index.ts"
+    "migrate": "ts-node ./db/migration.ts"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
